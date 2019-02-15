@@ -77,22 +77,29 @@ if __name__ == "__main__":
 	
 #-----------------------------------------------------------------------------------------------------
 
-#***********************************plotting 3d mesh below********************************************
+
 	figure = plt.figure()
-	ax = figure.add_subplot(111, projection='3d')
-	ax.set_xlabel('theta0')
-	ax.set_ylabel('theta1')
-	ax.set_zlabel('J_theta')
-	# x_for_mesh = np.linspace(-0.06,0.3,50)
-	# y_for_mesh = np.linspace(-0.06,0.3,50)
 	x_for_mesh = np.linspace(theta0_min,theta0_max,50)
 	y_for_mesh = np.linspace(theta1_min,theta1_max,50)
-
 	X_mesh, Y_mesh = np.meshgrid(x_for_mesh, y_for_mesh)
 	z_temp = [cost_function(x,y,x_val,y_val) for x,y in zip(np.ravel(X_mesh), np.ravel(Y_mesh))]
 	Z_mesh = np.array(z_temp).reshape(X_mesh.shape)
-	ax.plot_surface(X_mesh,Y_mesh,Z_mesh)
+#***********************************contour below********************************************
+	
+	# #Angles needed for quiver plot
+	# anglesx = np.array(all_theta0)[1:] - np.array(all_theta0)[:-1]
+	# anglesy = np.array(all_theta1)[1:] - np.array(all_theta1)[:-1]
 
+	# az = figure.add_subplot(1, 1, 1)
+	# az.contour(X_mesh, Y_mesh, Z_mesh, 100, cmap = 'jet')
+	# az.quiver(all_theta0[:-1], all_theta1[:-1], anglesx, anglesy, scale_units = 'xy', angles = 'xy', scale = 1, color = 'r', alpha = .9)
+
+
+#******************************************************************************************************
+
+#----------------------------------------3d mesh below-------------------------------------------------
+	ax = figure.add_subplot(111, projection='3d')
+	ax.plot_surface(X_mesh,Y_mesh,Z_mesh)
 	graph, = ax.plot([0.0],[0.0],cost_function(0.0,0.0,x_val,y_val),c='m', marker='o',markersize=3)
 	def gen_animation(i):
 		graph.set_data(all_theta0[:i+2], all_theta1[:i+2])
@@ -100,5 +107,5 @@ if __name__ == "__main__":
 		return graph
 
 	ani = animation.FuncAnimation(figure, gen_animation, interval=time_gap*1000)
-#******************************************************************************************************
+#----------------------------------------------------------------------------------------------------------
 	plt.show()
