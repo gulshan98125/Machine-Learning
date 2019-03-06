@@ -88,12 +88,12 @@ if __name__ == "__main__":
 #-------------------------------------------------------------------
 
 #*****************normalizing data********************
-	mean = np.mean(X,axis=0)
-	var = np.var(X,axis=0)
+	# mean = np.mean(X,axis=0)
+	# var = np.var(X,axis=0)
 
-	for i in xrange(len(Y)):
-		X[i][0] = (X[i][0]-mean[0])/math.sqrt(var[0])
-		X[i][1] = (X[i][1]-mean[1])/math.sqrt(var[1])
+	# for i in xrange(len(Y)):
+	# 	X[i][0] = (X[i][0]-mean[0])/math.sqrt(var[0])
+	# 	X[i][1] = (X[i][1]-mean[1])/math.sqrt(var[1])
 #*****************************************************
 	
 	x1_min = X[0][0]

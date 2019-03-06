@@ -1,3 +1,6 @@
 *.csv
 *.dat
 *.sh
+*.json
+*.pickle
+*.pyc

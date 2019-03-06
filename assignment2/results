@@ -1,0 +1,26 @@
+case sensitive on train: 0.646683804627
+not case on train:		 0.634727740126
+
+case sensitive on test:  0.604929777592
+not case on test:		 0.600711946036
+
+word_tokenize_only on train : 	 0.661089039495
+toktok on train:				 0.6576957233
+toktok on test:					 0.612684904052	 
+-------------------------------------------------
+(B)
+random test accuracy = 0.200803182818 %
+random train accuracy = 0.198971722365 %
+
+majority test accuracy = 0.439895900328 %
+majority train accuracy = 0.438214536107 %
+-------------------------------------------------
+
+(C) confusion matrix:
+
+	1	    2	   3      4      5
+1 [14346.  2800.  1356.  1091.  3177.]
+2 [ 3818.  3282.  1682.   723.   328.]
+3 [ 1183.  3330.  5209.  2553.   651.]
+4 [  465.  1075.  5377. 18030. 15207.]
+5 [  357.   351.   907.  6961. 39459.]

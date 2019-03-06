@@ -7,7 +7,7 @@ import matplotlib
 import matplotlib.animation as animation
 import mpl_toolkits.mplot3d.axes3d as p3
 
-
+stop_val = 1.0e-10
 
 def cost_function(theta0,theta1,x_values,y_values):
 	res = 0
@@ -62,7 +62,6 @@ if __name__ == "__main__":
 
 	x_val = genfromtxt(x_name, delimiter='\n')
 	y_val = genfromtxt(y_name, delimiter='\n')
-	stop_val = 1.0e-10
 
 	theta_0, theta_1, all_theta0,all_theta1, all_costs= batch_gradient_descent(x_val,y_val,learning_rate)
 	theta0_min, theta0_max, theta1_min, theta1_max = min(all_theta0),max(all_theta0),min(all_theta1),max(all_theta1)
@@ -79,33 +78,40 @@ if __name__ == "__main__":
 
 
 	figure = plt.figure()
-	x_for_mesh = np.linspace(theta0_min,theta0_max,50)
-	y_for_mesh = np.linspace(theta1_min,theta1_max,50)
+	x_for_mesh = np.linspace(theta0_min-0.1,theta0_max+0.1,100)
+	y_for_mesh = np.linspace(theta1_min-0.1,theta1_max+0.1,100)
 	X_mesh, Y_mesh = np.meshgrid(x_for_mesh, y_for_mesh)
 	z_temp = [cost_function(x,y,x_val,y_val) for x,y in zip(np.ravel(X_mesh), np.ravel(Y_mesh))]
 	Z_mesh = np.array(z_temp).reshape(X_mesh.shape)
 #***********************************contour below********************************************
 	
-	# #Angles needed for quiver plot
-	# anglesx = np.array(all_theta0)[1:] - np.array(all_theta0)[:-1]
-	# anglesy = np.array(all_theta1)[1:] - np.array(all_theta1)[:-1]
+	anglesx = np.array(all_theta0)[1:] - np.array(all_theta0)[:-1]
+	anglesy = np.array(all_theta1)[1:] - np.array(all_theta1)[:-1]
 
-	# az = figure.add_subplot(1, 1, 1)
-	# az.contour(X_mesh, Y_mesh, Z_mesh, 100, cmap = 'jet')
+	az = figure.add_subplot(1, 2, 1)
+	az.contour(X_mesh, Y_mesh, Z_mesh, 200, cmap = 'jet')
 	# az.quiver(all_theta0[:-1], all_theta1[:-1], anglesx, anglesy, scale_units = 'xy', angles = 'xy', scale = 1, color = 'r', alpha = .9)
-
-
+	plotwa, = az.plot([0.0],[0.0],c='m', marker='o',markersize=1)
+	def gen_animation1(i):
+		plotwa.set_data(all_theta0[:i+2], all_theta1[:i+2])
+		return plotwa
+	az.set_xlabel('theta0')
+	az.set_ylabel('theta1')
+	ani = animation.FuncAnimation(figure, gen_animation1, interval=time_gap*1000)
 #******************************************************************************************************
 
 #----------------------------------------3d mesh below-------------------------------------------------
-	ax = figure.add_subplot(111, projection='3d')
+	ax = figure.add_subplot(1, 2, 2, projection='3d')
 	ax.plot_surface(X_mesh,Y_mesh,Z_mesh)
 	graph, = ax.plot([0.0],[0.0],cost_function(0.0,0.0,x_val,y_val),c='m', marker='o',markersize=3)
-	def gen_animation(i):
+	def gen_animation2(i):
 		graph.set_data(all_theta0[:i+2], all_theta1[:i+2])
 		graph.set_3d_properties(all_costs[:i+2])
 		return graph
 
-	ani = animation.FuncAnimation(figure, gen_animation, interval=time_gap*1000)
+	ani2 = animation.FuncAnimation(figure, gen_animation2, interval=time_gap*1000)
+	ax.set_xlabel('theta0')
+	ax.set_ylabel('theta1')
+	ax.set_zlabel('Cost')
 #----------------------------------------------------------------------------------------------------------
 	plt.show()
