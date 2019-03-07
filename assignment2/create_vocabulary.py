@@ -20,6 +20,7 @@ def json_reader(fname):
 def create_vocabulary(train_file_name, stemmed, bigram):
 	print("creating vocabulary")
 	words_array = set()
+	new_dict = {}
 	counter = 0
 	
 	if stemmed==True:
@@ -71,21 +72,27 @@ def create_vocabulary(train_file_name, stemmed, bigram):
 		if bigram==True:
 			with open('bigram_processed_'+str(train_file_name.split('/')[-1].split('.')[0])+'.json', mode="w") as fp:
 				for line in json_reader(train_file_name):
-					dictionary = {}
+					# dictionary = {}
 					text_part = "".join(line['text'].split('\n'))
-					text_part = unicodedata.normalize('NFKD', text_part).encode('ascii','ignore').lower()
+					text_part = unicodedata.normalize('NFKD', text_part).encode('ascii','ignore')
 					text_part = text_part.translate(table)
 					bigram_array = list(bigrams(text_part.split()))
-					dictionary['text'] = text_part
-					dictionary['stars'] = line['stars']
-					json.dump(dictionary, fp)
-					fp.write("\n")
+					# dictionary['text'] = text_part
+					# dictionary['stars'] = line['stars']
+					# json.dump(dictionary, fp)
+					# fp.write("\n")
 					for word in bigram_array:
-						words_array.add(word)
-					if counter%3000==0:
+						try:
+							new_dict[word] += 1
+						except:
+							new_dict[word] = 1
+						# words_array.add(word)
+					if counter%5000==0:
 						print(counter)
 					counter+=1
-		
+			for x in new_dict:
+				if new_dict[x] >1:
+					words_array.add(x)
 			outfile = open('vocabulary_'+str(train_file_name.split('/')[-1].split('.')[0])+'_bigram_processed.pickle','wb')
 			pickle.dump(words_array,outfile,-1)
 			outfile.close()
@@ -114,4 +121,4 @@ def create_vocabulary(train_file_name, stemmed, bigram):
 			outfile.close()
 	print "done creating vocabulary"
 
-create_vocabulary(fileName[1], False, True)
+create_vocabulary(fileName[2], False, True)

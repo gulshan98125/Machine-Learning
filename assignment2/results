@@ -39,3 +39,16 @@ bigrams train accuracy = 82.6660434681 %
 
 bigrams with stemming on test    = 63.0004935760 %
 bigrams with stemming on train   = 89.9593362935 %
+
+with neglecting less than 2 count pairs:
+
+bigrams test accuracy = 61.9430443171 %
+bigrams test macro f score = 0.556518728627
+bigrams train accuracy = 75.6559943912 %
+bigrams train macro f score = 0.730337254956
+
+---------------------------------------------------
+(G)
+bigrams test accuracy = 68.3872029196 %
+bigrams test macro f score = 0.637528795479
+--------------------------------------------------
