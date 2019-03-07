@@ -62,8 +62,8 @@ def getStemmedDocuments(docs, return_tokens=True):
     else:
         return _stem(docs, p_stemmer, en_stop, return_tokens)
 
-# new_text = "It is important to by very pythonly while you are pythoning with python. \
+new_text = "It is important to by very pythonly!!! while you are pythoning with python. \
 #     All pythoners have pythoned poorly at least once."
 # new_text = "in every day life, we update every day"
 
-# print sum(1 for line in open('data/train.json'))
+# print getStemmedDocuments(new_text)
