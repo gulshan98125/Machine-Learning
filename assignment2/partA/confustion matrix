@@ -1,0 +1,26 @@
+normal:
+[[14346.,  2800.,  1356.,  1091.,  3177.],\
+[ 3818., 3282.,  1682.   ,723.   ,328.],\
+[ 1183.,  3330.,  5209. , 2553.   ,651.],\
+[  465.,  1075. , 5377. ,18030. ,15207.],\
+[  357.,   351.  , 907.  ,6961. ,39459.]]
+
+bigrams:
+[[16776., 4137., 1725., 821., 1395.],\
+ [ 1194., 1099., 314., 68., 75.],\
+ [  834., 2288., 2376., 553., 208.],\
+ [  954., 2868., 8989., 18616., 10581.],\
+ [  411., 446., 1127., 9300., 46563.]]
+
+F1 score is more suited because it gives insight of even distribution, while accuracy can be misleasing
+considering the fact that if we predict only 2 classess with high accuracy then accuracy will increase while
+macro score won't.
+
+________________________________________________
+commands:
+python main.py "data/train.json" "data/test.json" "a"
+python main.py "data/train.json" "data/test.json" "c"
+python main.py "data/train.json" "data/test.json" "b"
+python main.py "data/train.json" "data/test.json" "d"
+python main.py "data/train.json" "data/test.json" "e"
+python main.py "data/train.json" "data/test.json" "f"
