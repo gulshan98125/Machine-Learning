@@ -10,6 +10,7 @@ import numpy as np
 from random import shuffle
 import stemming_utilities as ul
 from collections import Counter
+from sklearn.metrics import f1_score
 from nltk.tag.perceptron import PerceptronTagger
 tagger=PerceptronTagger()
 
@@ -227,11 +228,13 @@ def predict(words_string, count_dict, words_per_label, per_class_count,processed
 	return (per_class_prob.index(max(per_class_prob))+1)
 
 def prediction_accuracy(file_name,a,b,c,processed, percentage_of_file,method): #method = normal, stemmed, bigram
-	matrix = np.zeros((5,5))
-	matrix = matrix.tolist()
-	recall_arr = [0.0]*5
-	precision_arr = [0.0]*5
-	f_score_arr = [0.0]*5
+	# matrix = np.zeros((5,5))
+	y_true = []
+	y_pred = []
+	# matrix = matrix.tolist()
+	# recall_arr = [0.0]*5
+	# precision_arr = [0.0]*5
+	# f_score_arr = [0.0]*5
 	numLines = sum(1 for line in open(file_name))
 	totalCount = 0
 	correctCount=0
@@ -239,60 +242,69 @@ def prediction_accuracy(file_name,a,b,c,processed, percentage_of_file,method): #
 	print('prediction line no.: '),
 	for line in json_reader(file_name):
 		prediction = predict(line['text'],a,b,c,processed,method)
-		matrix[int(prediction)-1][int(line['stars'])-1]+=1
-
+		# matrix[int(prediction)-1][int(line['stars'])-1]+=1
+		y_pred.append(prediction)
+		y_true.append(line['stars'])
 		if prediction==line['stars']:
 			correctCount+=1
 		if totalCount > int(percentage_of_file*numLines):
-			for i in range(5):
-				precision_arr[i] = matrix[i][i]/(sum([matrix[j][i] for j in range(5)]))
-				recall_arr[i] = matrix[i][i]/(sum(matrix[i]))
-			for i in range(5):
-				f_score_arr[i] = 2*(precision_arr[i]*recall_arr[i])/(precision_arr[i]+recall_arr[i])
+			# for i in range(5):
+			# 	precision_arr[i] = matrix[i][i]/(sum([matrix[j][i] for j in range(5)]))
+			# 	recall_arr[i] = matrix[i][i]/(sum(matrix[i]))
+			# for i in range(5):
+			# 	f_score_arr[i] = 2*(precision_arr[i]*recall_arr[i])/(precision_arr[i]+recall_arr[i])
+			f_score = f1_score(y_true, y_pred, average='macro')
 			print("\n")
-			return ( ((correctCount*1.0)/totalCount), (sum(f_score_arr)/len(f_score_arr)) )
+			return ( ((correctCount*1.0)/totalCount), f_score )
 			break
 		totalCount+=1
 		if totalCount%10000==0:
 			print(str(totalCount/1000)+'k'),
-	for i in range(5):
-		precision_arr[i] = matrix[i][i]/(sum([matrix[j][i] for j in range(5)]))
-		recall_arr[i] = matrix[i][i]/(sum(matrix[i]))
-	for i in range(5):
-		f_score_arr[i] = 2*(precision_arr[i]*recall_arr[i])/(precision_arr[i]+recall_arr[i])
+	# for i in range(5):
+	# 	precision_arr[i] = matrix[i][i]/(sum([matrix[j][i] for j in range(5)]))
+	# 	recall_arr[i] = matrix[i][i]/(sum(matrix[i]))
+	# for i in range(5):
+	# 	f_score_arr[i] = 2*(precision_arr[i]*recall_arr[i])/(precision_arr[i]+recall_arr[i])
+	f_score = f1_score(y_true, y_pred, average='macro')
 	print("\n")
-	return ( ((correctCount*1.0)/totalCount), (sum(f_score_arr)/len(f_score_arr)) )
+	return ( ((correctCount*1.0)/totalCount), f_score )
 
 def random_prediction_accuracy(file_name,percentage_of_file):
-	matrix = np.zeros((5,5))
-	matrix = matrix.tolist()
-	recall_arr = [0.0]*5
-	precision_arr = [0.0]*5
-	f_score_arr = [0.0]*5
+	# matrix = np.zeros((5,5))
+	# matrix = matrix.tolist()
+	# recall_arr = [0.0]*5
+	# precision_arr = [0.0]*5
+	# f_score_arr = [0.0]*5
+	y_true = []
+	y_pred = []
 
 	numLines = sum(1 for line in open(file_name))
 	totalCount = 0
 	correctCount=0
 	for line in json_reader(file_name):
 		prediction = random.randint(1,5)
-		matrix[int(prediction)-1][int(line['stars'])-1]+=1
+		# matrix[int(prediction)-1][int(line['stars'])-1]+=1
+		y_pred.append(prediction)
+		y_true.append(line['stars'])
 		if line['stars']==prediction:
 			correctCount+=1
 		if totalCount > int(percentage_of_file*numLines):
-			for i in range(5):
-				precision_arr[i] = matrix[i][i]/(sum([matrix[j][i] for j in range(5)]))
-				recall_arr[i] = matrix[i][i]/(sum(matrix[i]))
-			for i in range(5):
-				f_score_arr[i] = 2*(precision_arr[i]*recall_arr[i])/(precision_arr[i]+recall_arr[i])
-			return ( ((correctCount*1.0)/totalCount), (sum(f_score_arr)/len(f_score_arr)) )
+			# for i in range(5):
+			# 	precision_arr[i] = matrix[i][i]/(sum([matrix[j][i] for j in range(5)]))
+			# 	recall_arr[i] = matrix[i][i]/(sum(matrix[i]))
+			# for i in range(5):
+			# 	f_score_arr[i] = 2*(precision_arr[i]*recall_arr[i])/(precision_arr[i]+recall_arr[i])
+			f_score = f1_score(y_true, y_pred, average='macro')
+			return ( ((correctCount*1.0)/totalCount), f_score )
 			break
 		totalCount+=1
-	for i in range(5):
-		precision_arr[i] = matrix[i][i]/(sum([matrix[j][i] for j in range(5)]))
-		recall_arr[i] = matrix[i][i]/(sum(matrix[i]))
-	for i in range(5):
-		f_score_arr[i] = 2*(precision_arr[i]*recall_arr[i])/(precision_arr[i]+recall_arr[i])
-	return ( ((correctCount*1.0)/totalCount), (sum(f_score_arr)/len(f_score_arr)) )
+	# for i in range(5):
+	# 	precision_arr[i] = matrix[i][i]/(sum([matrix[j][i] for j in range(5)]))
+	# 	recall_arr[i] = matrix[i][i]/(sum(matrix[i]))
+	# for i in range(5):
+	# 	f_score_arr[i] = 2*(precision_arr[i]*recall_arr[i])/(precision_arr[i]+recall_arr[i])
+	f_score = f1_score(y_true, y_pred, average='macro')
+	return ( ((correctCount*1.0)/totalCount), f_score )
 
 def majority_prediction_accuracy(file_name,percentage_of_file):
 	matrix = np.zeros((5,5))
