@@ -9,7 +9,6 @@ global train_set
 global test_set
 global val_set
 global pred_acc
-pred_acc = []
 
 isReal = [1,0,0,0,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1]  # whether the column is real or multivalued
 col_names = ['X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', 'X11', 'X12', 'X13', 'X14', 'X15', 'X16', 'X17', 'X18', 'X19', 'X20', 'X21', 'X22', 'X23']
@@ -133,7 +132,7 @@ def growTree(node,method): #given a node with its dataframe construct the tree r
 	global pred_acc
 	global test_set
 	global val_set
-	if numNodes%5==0:
+	if numNodes%100==0:
 		pred = predict_df(root,val_set)
 		pred_acc.append(pred[0])
 		print("val prediction acc on %d nodes = %f"%(numNodes,pred[0]*100))
@@ -219,6 +218,9 @@ test_set = test_set.astype(int)
 val_set = pd.read_csv('cc_val.csv')
 val_set = val_set.drop(index=0,columns=['X0'])
 val_set = val_set.astype(int)
+
+
+pred_acc = []
 
 root = treeNode(dataframe,None)
 # print("growing...")

@@ -11,8 +11,8 @@ for i in range(len(col_names)):
 	isRealDict[col_names[i]] = isReal[i]
 
 
-range_of_attr = [[], [1,2], [0,1,2,3,4,5,6], [0,1,2,3], [], list(np.arange(-2,9))\
-				, list(np.arange(-2,9)), list(np.arange(-2,9)), list(np.arange(-2,9)), list(np.arange(-2,9)), list(np.arange(-2,9))\
+range_of_attr = [[], [1,2], [0,1,2,3,4,5,6], [0,1,2,3], [], list(np.arange(-2,10))\
+				, list(np.arange(-2,10)), list(np.arange(-2,10)), list(np.arange(-2,10)), list(np.arange(-2,10)), list(np.arange(-2,10))\
 				, [], [], [], [], [], [], [], [], [], [], [], []]
 range_of_attr_dict = {}
 for i in range(len(col_names)):
