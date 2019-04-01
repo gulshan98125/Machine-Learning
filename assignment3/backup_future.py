@@ -3,8 +3,7 @@ import numpy as np
 from math import log
 import time
 import copy
-
-global root
+from sklearn.metrics import f1_score
 
 isReal = [1,0,0,0,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1]  # whether the column is real or multivalued
 col_names = ['X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', 'X11', 'X12', 'X13', 'X14', 'X15', 'X16', 'X17', 'X18', 'X19', 'X20', 'X21', 'X22', 'X23']
@@ -27,44 +26,6 @@ dataframe = dataframe.drop(index=0,columns=['X0'])
 dataframe = dataframe.astype(int)
 median_val = dataframe.median() 
 
-class treeNode():
-	def __init__(self,df):
-		self.attribute = None
-		self.children = None
-		self.df = df
-		self.finalVal = None
-		self.function = None	#retuns true or false accoring to function
-		self.indexes_array = []
-
-def predict(node,row_df):	#recursive prediction by updating the node
-	if node.finalVal!=None:
-		return node.finalVal
-	else:
-		attr = node.attribute
-		children = node.children
-		val = row_df[attr]
-		for child in children:
-			# print(child.finalVal)
-			if child.function(val)==True:
-				return predict(child,row_df)
-
-def predict_df(node, df):		#gives accuracy over dataframe
-	totalCount = len(df)
-	# prediction = []
-	correct = 0.0
-	correct_zeros = 0.0
-	correct_ones = 0.0
-	for i in range(len(df)):
-		p = predict(node,df.iloc[i])
-		if p==df.iloc[i]['Y']:
-			correct+=1
-			if p==0:
-				correct_zeros+=1
-			else:
-				correct_ones+=1
-		# prediction.append(p)
-	# f_score = f1_score(np.array(df['Y']), prediction, average='macro')
-	return correct/totalCount, correct,totalCount, correct_zeros, correct_ones
 
 def getEntropy(numPositive,numNegative):
 	if numPositive==0 and numNegative==0:
@@ -108,14 +69,31 @@ def gain(currentDF, feature, method): #method = 'global' median, 'local' median,
 
 	else:
 		attr_values = range_of_attr_dict[feature]
+		df_children_arr = []
+		for i in range(len(attr_values)):
+			df_children_arr.append(currentDF['Y'].loc[ currentDF[feature]==attr_values[i] ])
+
 		gain_val = parent_entropy
 		for i in range(len(attr_values)):
-			df_child = currentDF['Y'].loc[ currentDF[feature]==attr_values[i] ]
-			num_pos = df_child.astype(bool).sum(axis=0)
-			num_neg = len(df_child)- num_pos
+			num_pos = df_children_arr[i].astype(bool).sum(axis=0)
+			num_neg = len(df_children_arr[i])- num_pos
 			# print(num_pos,num_neg)
-			gain_val -= (1.0*len(df_child)/len(currentDF))*getEntropy(num_pos,num_neg)
+			gain_val -= (1.0*len(df_children_arr[i])/len(currentDF))*getEntropy(num_pos,num_neg)
 		return gain_val
+
+
+class treeNode():
+	def __init__(self,dataframe,finalVal):
+		self.attribute = None
+		self.children = None
+		self.df = dataframe
+		self.finalVal = finalVal
+		self.function = None	#retuns true or false accoring to function
+		self.numPos = None
+		self.numNeg = None
+		self.indexes_array = []
+
+	# def function(self,v):
 
 
 
@@ -123,6 +101,8 @@ def growTree(node,method): #given a node with its dataframe construct the tree r
 	total = len(node.df)
 	num_pos = node.df['Y'].astype(bool).sum(axis=0)
 	num_neg = total-num_pos
+	node.numPos = num_pos
+	node.numNeg = num_neg
 	# print("DF",node.df)
 	if num_pos ==0:
 		node.finalVal=0
@@ -140,6 +120,7 @@ def growTree(node,method): #given a node with its dataframe construct the tree r
 		best_attr = col_names[gain_list.index(max(gain_list))]
 
 		if max(gain_list)==0:
+			# print(node.df)
 			if num_pos>=num_neg:
 				node.finalVal=1
 				return
@@ -157,12 +138,12 @@ def growTree(node,method): #given a node with its dataframe construct the tree r
 
 			df_child1 = node.df.loc[ node.df[best_attr]<median ] #dataframe for child1
 			df_child2 = node.df.loc[ node.df[best_attr]>=median ] #dataframe for child2
-			childNode1 = treeNode(df_child1)
+			childNode1 = treeNode(df_child1,None)
 			def generate1(v): return lambda y: y<v
 			def generate2(v): return lambda y: y>=v
 
 			childNode1.function = generate1(median)
-			childNode2 = treeNode(df_child2)
+			childNode2 = treeNode(df_child2,None)
 
 			childNode2.function = generate2(median)
 
@@ -183,7 +164,7 @@ def growTree(node,method): #given a node with its dataframe construct the tree r
 
 			children_arr = [None]*len(attr_values)
 			for j in range(len(attr_values)):	#create child node
-				children_arr[j] = treeNode(node.df.loc[ node.df[best_attr]==attr_values[j] ])
+				children_arr[j] = treeNode(node.df.loc[ node.df[best_attr]==attr_values[j] ],None)
 				# f = lambda y: y==attr_values[j]
 				children_arr[j].function=generate(attr_values[j])
 
@@ -192,7 +173,55 @@ def growTree(node,method): #given a node with its dataframe construct the tree r
 			for k in range(len(children_arr)):	# grow children trees
 				growTree(children_arr[k],method)
 
-def update_indexes_temp(node, row_df, index):
+
+
+def predict(node,row_df):	#recursive prediction by updating the node
+	# if node.finalVal!=None:
+	# 	return node.finalVal
+	if node.children == []:
+		num_pos = node.df['Y'].astype(bool).sum(axis=0)
+		num_neg = len(node.df) - num_neg
+		if num_pos>=num_neg:
+			return 1
+		else:
+			return 0
+	else:
+		attr = node.attribute
+		children = node.children
+		val = row_df[attr]
+		for child in children:
+			# print(child.finalVal)
+			if child.function(val)==True:
+				return predict(child,row_df)
+
+root = treeNode(dataframe,None)
+print("growing...")
+start_time = time.time()
+growTree(root,'local')
+print("runtime = %f"%(time.time()-start_time))
+# outfile = open('tree.pkl','wb')
+# pickle.dump(root,outfile,-1)
+# for i in range(20):
+# 	print predict(root,dataframe.iloc[i])
+
+# df = dataframe.iloc[[1692,3165,19106]]
+# print(gain(df,'X13','local'))
+
+def predict_df(node, df):		#gives accuracy over dataframe
+	print("predicting dataframe")
+	totalCount = len(df)
+	prediction = []
+	correct = 0.0
+	for i in range(len(df)):
+		p = predict(node,df.iloc[i])
+		if p==df.iloc[i]['Y']:
+			correct+=1
+		prediction.append(p)
+	f_score = f1_score(np.array(df['Y']), prediction, average='macro')
+	return correct/totalCount,f_score, correct,totalCount
+
+
+def update_indexes(node, row_df, index):
 	if node.finalVal != None:
 		return
 	node.indexes_array.append(index)
@@ -201,44 +230,40 @@ def update_indexes_temp(node, row_df, index):
 	val = row_df[attr]
 	for child in children:
 		if child.function(val)==True:
-			update_indexes_temp(child, row_df, index)
+			update_indexes(child, row_df, index)
 
-def update_indexes(root_node,df):	#given a dataframe, stores indexes passing through the nodes (of that df)
-	print("updating indexes")
+def update_evaluation_indexes(root_node,df):	#given a dataframe, stores indexes passing through the nodes (of that df)
 	for i in range(len(df)):
-		update_indexes_temp(root_node,df.iloc[i],i)
+		update_indexes(root_node,df.iloc[i],i)
 
 
-def pruneTree(node, df): #prunes tree in for 1 go for all the parent of leaf nodes
-	non_leaf_children = []
+def pruneTree(node, df): #prunes tree in 1 go for all the parent of leaf nodes
+	nonLeafChildList = []
 	for child in node.children:
 		if child.finalVal == None:
-			non_leaf_children.append(child)
-	if non_leaf_children!=[]:
-		for X in non_leaf_children:
+			nonLeafChildList.append(child)
+	if nonLeafChildList!=[]:
+		for X in nonLeafChildList:
 			pruneTree(X, df)
 	else:
 		useful_df = df.iloc[node.indexes_array]
-		if len(useful_df)==0:
-			return
 		num_pos = useful_df['Y'].astype(bool).sum(axis=0)
-		num_neg = len(useful_df) - num_pos
-		majority_pred_acc = (max(num_pos,num_neg)*1.0)/(num_pos+num_neg)
-		pred_acc = predict_df(node, useful_df)[0]
-		if majority_pred_acc >= pred_acc:
-			node.finalVal = (num_neg,num_pos).index(max(num_pos,num_neg))
+		if majority_pred_acc > pred_acc:
+			node.finalVal = majority_pred_acc
 			return
 		else:
 			return
 
+
+
+
 def numNodes(node):
 	if node.finalVal != None:
-		return 1
+		return 0
 	count = 1
 	for i in node.children:
 		count +=  numNodes(i)
 	return count
-
 
 df_test = pd.read_csv('cc_test.csv')
 df_test = df_test.drop(index=0,columns=['X0'])
@@ -251,46 +276,11 @@ df_val = df_val.astype(int)
 df_train = dataframe
 
 
-#-------------part a ---------------------
-root = treeNode(dataframe)
-print("growing...")
-start_time = time.time()
-growTree(root,'global')
-print("grow time = %f"%(time.time()-start_time))
-#-----------------------------------------
-
-#************************part b *************************
-
-root2 = copy.deepcopy(root)
-update_indexes(root2, df_val)
-present_acc=0.0
-past_acc=0.0
-num_nodes = []
-val_acc = []
-test_acc = []
-train_acc = []
-num_nodes.append(numNodes(root2))
-val_acc.append(predict_df(root2, df_val)[0])
-train_acc.append(predict_df(root2, df_train)[0])
-test_acc.append(predict_df(root2, df_test)[0])
-while(present_acc> past_acc):
-	print("pruning")
-	past_acc = present_acc
-	pruneTree(root2, df_val)
-	print("predicting")
-	num_nodes.append(numNodes(root2))
-	val_acc.append(predict_df(root2, df_val)[0])
-	train_acc.append(predict_df(root2, df_train)[0])
-	test_acc.append(predict_df(root2, df_test)[0])
-	present_acc = pred[0]
-
-#******************************************************
+# def cutTree(node, num_nodes):
 
 
-#-------------part c, also to do number of splits --
-root = treeNode(dataframe)
-print("growing...")
-start_time = time.time()
-growTree(root,'local')
-print("grow time = %f"%(time.time()-start_time))
-#-----------------------------------------
+# def print_accuracy_with_numNodes(node,df):
+# 	print("updating indexes")
+# 	update_evaluation_indexes(node, df)
+# 	for i in range(0,len(df),100):
+

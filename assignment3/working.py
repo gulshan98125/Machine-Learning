@@ -4,8 +4,6 @@ from math import log
 import time
 import copy
 
-global root
-
 isReal = [1,0,0,0,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1]  # whether the column is real or multivalued
 col_names = ['X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', 'X11', 'X12', 'X13', 'X14', 'X15', 'X16', 'X17', 'X18', 'X19', 'X20', 'X21', 'X22', 'X23']
 isRealDict = {}
@@ -28,11 +26,11 @@ dataframe = dataframe.astype(int)
 median_val = dataframe.median() 
 
 class treeNode():
-	def __init__(self,df):
+	def __init__(self,df,finalVal):
 		self.attribute = None
 		self.children = None
 		self.df = df
-		self.finalVal = None
+		self.finalVal = finalVal
 		self.function = None	#retuns true or false accoring to function
 		self.indexes_array = []
 
@@ -157,12 +155,12 @@ def growTree(node,method): #given a node with its dataframe construct the tree r
 
 			df_child1 = node.df.loc[ node.df[best_attr]<median ] #dataframe for child1
 			df_child2 = node.df.loc[ node.df[best_attr]>=median ] #dataframe for child2
-			childNode1 = treeNode(df_child1)
+			childNode1 = treeNode(df_child1,None)
 			def generate1(v): return lambda y: y<v
 			def generate2(v): return lambda y: y>=v
 
 			childNode1.function = generate1(median)
-			childNode2 = treeNode(df_child2)
+			childNode2 = treeNode(df_child2,None)
 
 			childNode2.function = generate2(median)
 
@@ -183,7 +181,7 @@ def growTree(node,method): #given a node with its dataframe construct the tree r
 
 			children_arr = [None]*len(attr_values)
 			for j in range(len(attr_values)):	#create child node
-				children_arr[j] = treeNode(node.df.loc[ node.df[best_attr]==attr_values[j] ])
+				children_arr[j] = treeNode(node.df.loc[ node.df[best_attr]==attr_values[j] ],None)
 				# f = lambda y: y==attr_values[j]
 				children_arr[j].function=generate(attr_values[j])
 
@@ -240,6 +238,12 @@ def numNodes(node):
 	return count
 
 
+root = treeNode(dataframe,None)
+print("growing...")
+start_time = time.time()
+growTree(root,'global')
+print("grow time = %f"%(time.time()-start_time))
+
 df_test = pd.read_csv('cc_test.csv')
 df_test = df_test.drop(index=0,columns=['X0'])
 df_test = df_test.astype(int)
@@ -249,48 +253,3 @@ df_val = df_val.drop(index=0,columns=['X0'])
 df_val = df_val.astype(int)
 
 df_train = dataframe
-
-
-#-------------part a ---------------------
-root = treeNode(dataframe)
-print("growing...")
-start_time = time.time()
-growTree(root,'global')
-print("grow time = %f"%(time.time()-start_time))
-#-----------------------------------------
-
-#************************part b *************************
-
-root2 = copy.deepcopy(root)
-update_indexes(root2, df_val)
-present_acc=0.0
-past_acc=0.0
-num_nodes = []
-val_acc = []
-test_acc = []
-train_acc = []
-num_nodes.append(numNodes(root2))
-val_acc.append(predict_df(root2, df_val)[0])
-train_acc.append(predict_df(root2, df_train)[0])
-test_acc.append(predict_df(root2, df_test)[0])
-while(present_acc> past_acc):
-	print("pruning")
-	past_acc = present_acc
-	pruneTree(root2, df_val)
-	print("predicting")
-	num_nodes.append(numNodes(root2))
-	val_acc.append(predict_df(root2, df_val)[0])
-	train_acc.append(predict_df(root2, df_train)[0])
-	test_acc.append(predict_df(root2, df_test)[0])
-	present_acc = pred[0]
-
-#******************************************************
-
-
-#-------------part c, also to do number of splits --
-root = treeNode(dataframe)
-print("growing...")
-start_time = time.time()
-growTree(root,'local')
-print("grow time = %f"%(time.time()-start_time))
-#-----------------------------------------
