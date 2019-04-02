@@ -3,7 +3,8 @@ import numpy as np
 from math import log
 import time
 import copy
-
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 global root
 
 isReal = [1,0,0,0,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1]  # whether the column is real or multivalued
@@ -227,6 +228,7 @@ def pruneTree(node, df): #prunes tree in for 1 go for all the parent of leaf nod
 		pred_acc = predict_df(node, useful_df)[0]
 		if majority_pred_acc >= pred_acc:
 			node.finalVal = (num_neg,num_pos).index(max(num_pos,num_neg))
+			node.children = None
 			return
 		else:
 			return
@@ -251,20 +253,20 @@ df_val = df_val.astype(int)
 df_train = dataframe
 
 
-#-------------part a ---------------------
+#--------------------PART A----------------------------
 root = treeNode(dataframe)
 print("growing...")
 start_time = time.time()
 growTree(root,'global')
 print("grow time = %f"%(time.time()-start_time))
-#-----------------------------------------
+#-----------------END A--------------------------
 
-#************************part b *************************
+#************************PART B*************************
 
 root2 = copy.deepcopy(root)
 update_indexes(root2, df_val)
 present_acc=0.0
-past_acc=0.0
+past_acc=-1.0
 num_nodes = []
 val_acc = []
 test_acc = []
@@ -279,18 +281,90 @@ while(present_acc> past_acc):
 	pruneTree(root2, df_val)
 	print("predicting")
 	num_nodes.append(numNodes(root2))
-	val_acc.append(predict_df(root2, df_val)[0])
+	pred = predict_df(root2, df_val)
+	val_acc.append(pred[0])
 	train_acc.append(predict_df(root2, df_train)[0])
 	test_acc.append(predict_df(root2, df_test)[0])
 	present_acc = pred[0]
 
-#******************************************************
+#************************END B****************************
 
 
-#-------------part c, also to do number of splits --
+#-------------PART C, also to do number of splits --
 root = treeNode(dataframe)
 print("growing...")
 start_time = time.time()
 growTree(root,'local')
 print("grow time = %f"%(time.time()-start_time))
-#-----------------------------------------
+#-------------------END C----------------------
+
+#*****************************************************PART D **********************************************************************
+
+I,J,acc=0,0,0
+for l in range(1,10):
+	for m in range(2,10):
+		tree = DecisionTreeClassifier(criterion='entropy',random_state=0,max_depth = 10,min_samples_split=m,min_samples_leaf=l)
+		tree.fit(x_train,y_train)
+		pred = tree.score(x_val,y_val)
+		if pred>acc:
+			acc = pred
+			I=m
+			J=l
+tree = DecisionTreeClassifier(criterion='entropy',random_state=0,max_depth = 10,min_samples_split=I,min_samples_leaf=J)
+tree.fit(x_train,y_train)
+print("validation accuracy = %f"%tree.score(x_val,y_val))
+print("train accuracy = %f"%tree.score(x_train,y_train))
+
+#*************************************************************END D***************************************************************
+
+#------------------------------PART E -----------------------------------------------
+df2 = pd.DataFrame([\
+	[0, 1, 0, 0, 0, -2, -2, -2, -2, -2, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	[0, 2, 1, 1, 0, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	[0, 2, 2, 2, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	[0, 2, 3, 3, 0,  1,  1,  1,  1,  1,  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	[0, 2, 4, 0, 0,  2,  2,  2,  2,  2,  2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	[0, 2, 5, 0, 0,  3,  3,  3,  3,  3,  3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	[0, 2, 6, 0, 0,  4,  4,  4,  4,  4,  4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	[0, 2, 0, 0, 0,  5,  5,  5,  5,  5,  5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	[0, 2, 0, 0, 0,  6,  6,  6,  6,  6,  6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	[0, 2, 0, 0, 0,  7,  7,  7,  7,  7,  7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	[0, 2, 0, 0, 0,  8,  8,  8,  8,  8,  8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	[0, 2, 0, 0, 0,  9,  9,  9,  9,  9,  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+	], columns=df_test.columns)
+df_test2 = df2.append(df_test)
+df_train2 = df2.append(df_train)
+df_val2 = df2.append(df_val)
+dict = {-2:'a',-1:'b',0:'c',1:'d',2:'e',3:'f',4:'g',5:'h',6:'i',7:'j',8:'k',9:'l'}
+sets = [df_test2,df_train2,df_val2]
+for setwa in sets:
+	for i in [[(3,3),(0,6)],[(4,4),(0,3)],[(6,11),(-2,9)]]:
+		#[(startcol, endcol),(rangemin, rangemax)]
+		startcol = i[0][0]
+		endcol =   i[0][1]+1
+		rangemin = i[1][0]
+		rangemax = i[1][1]+1
+		for col in range(startcol, endcol):
+			for rang in range(rangemin,rangemax):
+				column = 'X'+str(col)
+				setwa[column][setwa[column]==rang] = dict[rang]
+tree2 = DecisionTreeClassifier(criterion='entropy',random_state=0,max_depth = 10,min_samples_split=9,min_samples_leaf=4)
+df_test2 = pd.get_dummies(df_test2)
+df_train2 = pd.get_dummies(df_train2)
+df_val2 = pd.get_dummies(df_val2)
+df_test2 = df_test2[12:]
+df_train2 = df_train2[12:]
+df_val2 = df_val2[12:]
+x_train,y_train = df_train2.drop(columns=['Y']), df_train2['Y']
+x_test, y_test = df_test2.drop(columns=['Y']), df_test2['Y']
+x_val, y_val = df_val2.drop(columns=['Y']), df_val2['Y']
+tree2.fit(x_train,y_train)
+print("validation accuracy = %f"%tree2.score(x_val,y_val))
+print("train accuracy = %f"%tree2.score(x_train,y_train))
+
+#---------------------------------------------END E----------------------------------------------------------------------
+
+#***********************PART F************************
+tree3 = RandomForestClassifier(n_estimators=100, max_depth=10,random_state=0,bootstrap=False)
+tree3.fit(x_train,y_train)
+tree3.score(x_val,y_val)

@@ -225,6 +225,7 @@ def pruneTree(node, df): #prunes tree in for 1 go for all the parent of leaf nod
 		pred_acc = predict_df(node, useful_df)[0]
 		if majority_pred_acc >= pred_acc:
 			node.finalVal = (num_neg,num_pos).index(max(num_pos,num_neg))
+			node.children = None
 			return
 		else:
 			return
