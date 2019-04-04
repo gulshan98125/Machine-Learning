@@ -17,10 +17,10 @@ test_acc = [0.733, 0.758, 0.759, 0.7633333333333333, 0.7651666666666667, 0.76433
 train_acc = [0.9466666666666667, 0.9067777777777778, 0.8935, 0.8860555555555556, 0.8836666666666667, 0.8816666666666667, 0.8809444444444444, 0.8808333333333334, 0.8806666666666667, 0.8806111111111111]
 
 num_nodes = [14790, 12616, 11288, 10310, 9826, 9578, 9435, 9323, 9281, 9269]
-//num_nodes = [14283, 12166, 10871, 9930, 9458, 9215, 9075, 8967, 8926, 8914]
+#num_nodes = [14283, 12166, 10871, 9930, 9458, 9215, 9075, 8967, 8926, 8914]
 
-plt.plot(num_nodes, val_acc,markersize=2, color='b',label="validation data")
 plt.plot(num_nodes, train_acc,markersize=2, color='m',label="training data")
+plt.plot(num_nodes, val_acc,markersize=2, color='b',label="validation data")
 plt.plot(num_nodes, test_acc,markersize=2, color='g',label="test data")
 plt.plot(num_nodes, val_acc,'ro',markersize=5, color='b')
 plt.plot(num_nodes, train_acc,'ro',markersize=5, color='m')
@@ -54,6 +54,10 @@ val_acc = 0.799, test_acc = 0.8085
 -------------------------------------
 
 Part F:
-(1) (n_estimators=100, max_depth=10,random_state=0,bootstrap=False) = (val: 0.80417, test: 0.80517)
+(n_estimators=100, max_depth=10,random_state=0,bootstrap=False) = (val: 0.80417, test: 0.80517)
+
+accuracy increases with n_features till it saturates
+gini criterion seems to work better than entropy in this case
+
 Even though there looks not much increase in accuracy but the significant difference is that it is able
 to predict the minority class comparitively well
