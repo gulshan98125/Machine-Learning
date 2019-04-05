@@ -1,11 +1,14 @@
 import pandas as pd
 import numpy as np
 from math import log
+import matplotlib.pyplot as plt
 import time
+import sys
 import copy
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 global root
+global median_val
 
 isReal = [1,0,0,0,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1]  # whether the column is real or multivalued
 col_names = ['X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', 'X11', 'X12', 'X13', 'X14', 'X15', 'X16', 'X17', 'X18', 'X19', 'X20', 'X21', 'X22', 'X23']
@@ -20,13 +23,6 @@ range_of_attr = [[], [1,2], [0,1,2,3,4,5,6], [0,1,2,3], [], list(np.arange(-2,10
 range_of_attr_dict = {}
 for i in range(len(col_names)):
 	range_of_attr_dict[col_names[i]] = range_of_attr[i]
-
-
-dataframe = pd.read_csv('cc_train.csv')
-# dataframe = dataframe.drop(index=0,columns=['Unnamed: 0','Y'])
-dataframe = dataframe.drop(index=0,columns=['X0'])
-dataframe = dataframe.astype(int)
-median_val = dataframe.median() 
 
 class treeNode():
 	def __init__(self,df):
@@ -83,6 +79,7 @@ def getEntropy(numPositive,numNegative):
 
 # given a DF and a feature column it gives all the possible gain
 def gain(currentDF, feature, method): #method = 'global' median, 'local' median, global means preprocessing columns
+	global median_val
 	parent_num_pos = currentDF['Y'].astype(bool).sum(axis=0)
 	parent_num_neg = len(currentDF) - parent_num_pos
 	parent_entropy = getEntropy(parent_num_pos,parent_num_neg)
@@ -121,6 +118,7 @@ def gain(currentDF, feature, method): #method = 'global' median, 'local' median,
 
 
 def growTree(node,method): #given a node with its dataframe construct the tree recursively and return that node
+	global median_val
 	total = len(node.df)
 	num_pos = node.df['Y'].astype(bool).sum(axis=0)
 	num_neg = total-num_pos
@@ -241,131 +239,151 @@ def numNodes(node):
 		count +=  numNodes(i)
 	return count
 
+if __name__ == "__main__":
+	sub_part = int(str(sys.argv[1]))
+	path_to_train = str(sys.argv[2])
+	path_to_test = str(sys.argv[3])
+	path_to_val = str(sys.argv[4])
 
-df_test = pd.read_csv('cc_test.csv')
-df_test = df_test.drop(index=0,columns=['X0'])
-df_test = df_test.astype(int)
+	# sub_part=6
+	# path_to_train='data/cc_train.csv'
+	# path_to_test='data/cc_test.csv'
+	# path_to_val='data/cc_val.csv'
 
-df_val = pd.read_csv('cc_val.csv')
-df_val = df_val.drop(index=0,columns=['X0'])
-df_val = df_val.astype(int)
+	df_test = ((pd.read_csv(path_to_test)).drop(index=0,columns=['X0'])).astype(int)
+	df_val = ((pd.read_csv(path_to_val)).drop(index=0,columns=['X0'])).astype(int)
+	df_train = ((pd.read_csv(path_to_train)).drop(index=0,columns=['X0'])).astype(int)
+	median_val = df_train.median() 
 
-df_train = dataframe
+	if sub_part==1:
+		root = treeNode(df_train)
+		print("growing...")
+		start_time = time.time()
+		growTree(root,'global')
+		print("grow time = %f"%(time.time()-start_time))
+		print("training accuracy = %f"%predict_df(root,df_train)[0])
+		print("validation accuracy = %f"%predict_df(root,df_val)[0])
+		print("test accuracy = %f"%predict_df(root,df_test)[0])
 
+	elif sub_part==2:
+		root = treeNode(df_train)
+		print("growing...")
+		start_time = time.time()
+		growTree(root,'global')
+		print("grow time = %f"%(time.time()-start_time))
 
-#--------------------PART A----------------------------
-root = treeNode(dataframe)
-print("growing...")
-start_time = time.time()
-growTree(root,'global')
-print("grow time = %f"%(time.time()-start_time))
-#-----------------END A--------------------------
+		root2 = copy.deepcopy(root)
+		update_indexes(root2, df_val)
+		present_acc=0.0
+		past_acc=-1.0
+		num_nodes = []
+		val_acc = []
+		test_acc = []
+		train_acc = []
+		num_nodes.append(numNodes(root2))
+		val_acc.append(predict_df(root2, df_val)[0])
+		train_acc.append(predict_df(root2, df_train)[0])
+		test_acc.append(predict_df(root2, df_test)[0])
+		while(present_acc> past_acc):
+			print("pruning")
+			past_acc = present_acc
+			pruneTree(root2, df_val)
+			print("predicting")
+			num_nodes.append(numNodes(root2))
+			pred = predict_df(root2, df_val)
+			val_acc.append(pred[0])
+			train_acc.append(predict_df(root2, df_train)[0])
+			test_acc.append(predict_df(root2, df_test)[0])
+			present_acc = pred[0]
+		print("training accuracy = %f"%predict_df(root2,df_train)[0])
+		print("validation accuracy = %f"%predict_df(root2,df_val)[0])
+		print("test accuracy = %f"%predict_df(root2,df_test)[0])
+		plt.plot(num_nodes, train_acc,markersize=2, color='m',label="training data")
+		plt.plot(num_nodes, val_acc,markersize=2, color='b',label="validation data")
+		plt.plot(num_nodes, test_acc,markersize=2, color='g',label="test data")
+		plt.plot(num_nodes, val_acc,'ro',markersize=5, color='b')
+		plt.plot(num_nodes, train_acc,'ro',markersize=5, color='m')
+		plt.plot(num_nodes, test_acc,'ro',markersize=5, color='g')
+		plt.xlabel('number of nodes')
+		plt.ylabel('accuracy')
+		plt.gca().invert_xaxis()
+		plt.legend()
+		plt.show()
 
-#************************PART B*************************
+	elif sub_part==3:
+		root = treeNode(df_train)
+		print("growing...")
+		start_time = time.time()
+		growTree(root,'local')
+		print("grow time = %f"%(time.time()-start_time))
+		print("training accuracy = %f"%predict_df(root,df_train)[0])
+		print("validation accuracy = %f"%predict_df(root,df_val)[0])
+		print("test accuracy = %f"%predict_df(root,df_test)[0])
 
-root2 = copy.deepcopy(root)
-update_indexes(root2, df_val)
-present_acc=0.0
-past_acc=-1.0
-num_nodes = []
-val_acc = []
-test_acc = []
-train_acc = []
-num_nodes.append(numNodes(root2))
-val_acc.append(predict_df(root2, df_val)[0])
-train_acc.append(predict_df(root2, df_train)[0])
-test_acc.append(predict_df(root2, df_test)[0])
-while(present_acc> past_acc):
-	print("pruning")
-	past_acc = present_acc
-	pruneTree(root2, df_val)
-	print("predicting")
-	num_nodes.append(numNodes(root2))
-	pred = predict_df(root2, df_val)
-	val_acc.append(pred[0])
-	train_acc.append(predict_df(root2, df_train)[0])
-	test_acc.append(predict_df(root2, df_test)[0])
-	present_acc = pred[0]
+	elif sub_part==4:
+		dictwa = {1:0,2:1}
+		sets = [df_test,df_train,df_val]
+		for setwa in sets:
+			setwa['X2'] = setwa['X2'].map(dictwa)
 
-#************************END B****************************
+		x_train,y_train = df_train.drop(columns=['Y']), df_train['Y']
+		x_test, y_test = df_test.drop(columns=['Y']), df_test['Y']
+		x_val, y_val = df_val.drop(columns=['Y']), df_val['Y']
 
-
-#-------------PART C, also to do number of splits --
-root = treeNode(dataframe)
-print("growing...")
-start_time = time.time()
-growTree(root,'local')
-print("grow time = %f"%(time.time()-start_time))
-#-------------------END C----------------------
-
-#*****************************************************PART D **********************************************************************
-
-I,J,acc=0,0,0
-for l in range(1,10):
-	for m in range(2,10):
-		tree = DecisionTreeClassifier(criterion='entropy',random_state=0,max_depth = 10,min_samples_split=m,min_samples_leaf=l)
+		print("parameters: min_samples_split=9, min_samples_leaf=4, max_depth = 10, random_state =0, criterion=entropy")
+		tree = DecisionTreeClassifier(criterion='entropy',random_state=0,max_depth = 10,min_samples_split=9,min_samples_leaf=4)
 		tree.fit(x_train,y_train)
-		pred = tree.score(x_val,y_val)
-		if pred>acc:
-			acc = pred
-			I=m
-			J=l
-tree = DecisionTreeClassifier(criterion='entropy',random_state=0,max_depth = 10,min_samples_split=I,min_samples_leaf=J)
-tree.fit(x_train,y_train)
-print("validation accuracy = %f"%tree.score(x_val,y_val))
-print("train accuracy = %f"%tree.score(x_train,y_train))
+		print("training accuracy = %f"%tree.score(x_train,y_train))
+		print("validation accuracy = %f"%tree.score(x_val,y_val))
+		print("test accuracy = %f"%tree.score(x_test,y_test))
 
-#*************************************************************END D***************************************************************
-
-#------------------------------PART E -----------------------------------------------
-df2 = pd.DataFrame([\
-	[0, 1, 0, 0, 0, -2, -2, -2, -2, -2, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	[0, 2, 1, 1, 0, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	[0, 2, 2, 2, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	[0, 2, 3, 3, 0,  1,  1,  1,  1,  1,  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	[0, 2, 4, 0, 0,  2,  2,  2,  2,  2,  2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	[0, 2, 5, 0, 0,  3,  3,  3,  3,  3,  3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	[0, 2, 6, 0, 0,  4,  4,  4,  4,  4,  4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	[0, 2, 0, 0, 0,  5,  5,  5,  5,  5,  5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	[0, 2, 0, 0, 0,  6,  6,  6,  6,  6,  6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	[0, 2, 0, 0, 0,  7,  7,  7,  7,  7,  7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	[0, 2, 0, 0, 0,  8,  8,  8,  8,  8,  8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	[0, 2, 0, 0, 0,  9,  9,  9,  9,  9,  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
-	], columns=df_test.columns)
-df_test2 = df2.append(df_test)
-df_train2 = df2.append(df_train)
-df_val2 = df2.append(df_val)
-dict = {-2:'a',-1:'b',0:'c',1:'d',2:'e',3:'f',4:'g',5:'h',6:'i',7:'j',8:'k',9:'l'}
-sets = [df_test2,df_train2,df_val2]
-for setwa in sets:
-	for i in [[(3,3),(0,6)],[(4,4),(0,3)],[(6,11),(-2,9)]]:
-		#[(startcol, endcol),(rangemin, rangemax)]
-		startcol = i[0][0]
-		endcol =   i[0][1]+1
-		rangemin = i[1][0]
-		rangemax = i[1][1]+1
-		for col in range(startcol, endcol):
-			for rang in range(rangemin,rangemax):
+	elif sub_part==5:
+		df2 = pd.DataFrame([\
+			[0, 1, 0, 0, 0, -2, -2, -2, -2, -2, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			[0, 2, 1, 1, 0, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			[0, 2, 2, 2, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			[0, 2, 3, 3, 0,  1,  1,  1,  1,  1,  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			[0, 2, 4, 0, 0,  2,  2,  2,  2,  2,  2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			[0, 2, 5, 0, 0,  3,  3,  3,  3,  3,  3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			[0, 2, 6, 0, 0,  4,  4,  4,  4,  4,  4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			[0, 2, 0, 0, 0,  5,  5,  5,  5,  5,  5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			[0, 2, 0, 0, 0,  6,  6,  6,  6,  6,  6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			[0, 2, 0, 0, 0,  7,  7,  7,  7,  7,  7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			[0, 2, 0, 0, 0,  8,  8,  8,  8,  8,  8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			[0, 2, 0, 0, 0,  9,  9,  9,  9,  9,  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+			], columns=df_test.columns)
+		df_test2 = df2.append(df_test)
+		df_train2 = df2.append(df_train)
+		df_val2 = df2.append(df_val)
+		dictwa = {-2:'a',-1:'b',0:'c',1:'d',2:'e',3:'f',4:'g',5:'h',6:'i',7:'j',8:'k',9:'l'}
+		sets = [df_test2,df_train2,df_val2]
+		for setwa in sets:
+			setwa['X2'] = setwa['X2'].map({1:0,2:1})
+			for col in [3,4,6,7,8,9,10,11]:
 				column = 'X'+str(col)
-				setwa[column][setwa[column]==rang] = dict[rang]
-tree2 = DecisionTreeClassifier(criterion='entropy',random_state=0,max_depth = 10,min_samples_split=9,min_samples_leaf=4)
-df_test2 = pd.get_dummies(df_test2)
-df_train2 = pd.get_dummies(df_train2)
-df_val2 = pd.get_dummies(df_val2)
-df_test2 = df_test2[12:]
-df_train2 = df_train2[12:]
-df_val2 = df_val2[12:]
-x_train,y_train = df_train2.drop(columns=['Y']), df_train2['Y']
-x_test, y_test = df_test2.drop(columns=['Y']), df_test2['Y']
-x_val, y_val = df_val2.drop(columns=['Y']), df_val2['Y']
-tree2.fit(x_train,y_train)
-print("validation accuracy = %f"%tree2.score(x_val,y_val))
-print("train accuracy = %f"%tree2.score(x_train,y_train))
+				setwa[column] = setwa[column].map(dictwa)
+		tree2 = DecisionTreeClassifier(criterion='entropy',random_state=0,max_depth = 10,min_samples_split=9,min_samples_leaf=4)
+		df_test2 = pd.get_dummies(df_test2)
+		df_train2 = pd.get_dummies(df_train2)
+		df_val2 = pd.get_dummies(df_val2)
+		df_test2 = df_test2[12:]
+		df_train2 = df_train2[12:]
+		df_val2 = df_val2[12:]
+		x_train,y_train = df_train2.drop(columns=['Y']), df_train2['Y']
+		x_test, y_test = df_test2.drop(columns=['Y']), df_test2['Y']
+		x_val, y_val = df_val2.drop(columns=['Y']), df_val2['Y']
+		tree2.fit(x_train,y_train)
+		print("train accuracy = %f"%tree2.score(x_train,y_train))
+		print("validation accuracy = %f"%tree2.score(x_val,y_val))
+		print("test accuracy = %f"%tree2.score(x_test,y_test))
 
-#---------------------------------------------END E----------------------------------------------------------------------
+	elif sub_part==6:
+		x_train,y_train = df_train.drop(columns=['Y']), df_train['Y']
+		x_test, y_test = df_test.drop(columns=['Y']), df_test['Y']
+		x_val, y_val = df_val.drop(columns=['Y']), df_val['Y']
 
-#***********************PART F****************************************************************
-tree3 = RandomForestClassifier(n_estimators=100, max_depth=10,random_state=0,bootstrap=False)
-tree3.fit(x_train,y_train)
-tree3.score(x_val,y_val)
-#***********************END E*****************************************************************
+		tree = RandomForestClassifier(n_estimators=100, max_depth=10,random_state=0,bootstrap=False)
+		tree.fit(x_train,y_train)
+		print("train accuracy = %f"%tree.score(x_train,y_train))
+		print("validation accuracy = %f"%tree.score(x_val,y_val))
+		print("test accuracy = %f"%tree.score(x_test,y_test))

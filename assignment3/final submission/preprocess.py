@@ -1,12 +1,14 @@
 import pandas as pd
-
+import sys
 if __name__ == "__main__":
 	train_path = str(sys.argv[1])
 	test_path = str(sys.argv[2])
 	one_hot_train_path = str(sys.argv[3])
 	one_hot_test_path = str(sys.argv[4])
-	# train_path = 'poker_train.data'
-	# test_path = 'poker_test.data'
+	# train_path = 'poker_train.csv'
+	# test_path = 'poker_test.csv'
+	# one_hot_train_path = 'train_output.csv'
+	# one_hot_test_path = 'test_output.csv'
 
 	train = pd.read_csv(train_path,header=None)
 	train.columns = ['X1','X2','X3','X4','X5','X6','X7','X8','X9','X10','Y']
@@ -15,18 +17,18 @@ if __name__ == "__main__":
 
 	df2 = pd.DataFrame([\
 	[1, 1,  1, 1,  1, 1,  1,  1,  1,  1,  0],\
-	[2, 2,  2, 2,  2, 2,  2,  2,  2,  2,  1],\
-	[3, 3,  3, 3,  3, 3,  3,  3,  3,  3,  2],\
-	[4, 4,  4, 4,  4, 4,  4,  4,  4,  4,  3],\
-	[4, 5,  1, 5,  1, 5,  1,  5,  1,  5,  4],\
-	[4, 6,  1, 6,  1, 6,  1,  6,  1,  6,  5],\
-	[4, 7,  1, 7,  1, 7,  1,  7,  1,  7,  6],\
-	[4, 8,  1, 8,  1, 8,  1,  8,  1,  8,  7],\
-	[4, 9,  1, 9,  1, 9,  1,  9,  1,  9,  8],\
-	[4, 10, 1, 10, 1, 10, 1, 10,  1,  10, 9],\
-	[4, 11, 1, 11, 1, 11, 1, 11,  1,  11, 1],\
-	[4, 12, 1, 12, 1, 12, 1, 12,  1,  12, 1],\
-	[4, 13, 1, 13, 1, 13, 1, 13,  1,  13, 1],\
+	[2, 2,  2, 2,  2, 2,  2,  2,  2,  2,  0],\
+	[3, 3,  3, 3,  3, 3,  3,  3,  3,  3,  0],\
+	[4, 4,  4, 4,  4, 4,  4,  4,  4,  4,  0],\
+	[4, 5,  1, 5,  1, 5,  1,  5,  1,  5,  0],\
+	[4, 6,  1, 6,  1, 6,  1,  6,  1,  6,  0],\
+	[4, 7,  1, 7,  1, 7,  1,  7,  1,  7,  0],\
+	[4, 8,  1, 8,  1, 8,  1,  8,  1,  8,  0],\
+	[4, 9,  1, 9,  1, 9,  1,  9,  1,  9,  0],\
+	[4, 10, 1, 10, 1, 10, 1, 10,  1,  10, 0],\
+	[4, 11, 1, 11, 1, 11, 1, 11,  1,  11, 0],\
+	[4, 12, 1, 12, 1, 12, 1, 12,  1,  12, 0],\
+	[4, 13, 1, 13, 1, 13, 1, 13,  1,  13, 0],\
 	], columns=train.columns)
 
 	train = df2.append(train)
@@ -37,7 +39,6 @@ if __name__ == "__main__":
 		for i in range(1,11):
 			col = 'X'+str(i)
 			df[col] = df[col].map(dictwa)
-		df['Y'] = df['Y'].map(dictwa)
 
 	test = pd.get_dummies(test)
 	train = pd.get_dummies(train)
