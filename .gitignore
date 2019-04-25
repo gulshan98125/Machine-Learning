@@ -4,4 +4,6 @@
 *.json
 *.pickle
 *.pyc
+*.pkl
+data/
 sk_learn.py

@@ -1,0 +1,1 @@
+total trian examples = 20000 in steps of 3

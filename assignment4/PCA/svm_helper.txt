@@ -1,0 +1,60 @@
+import cPickle as pickle
+import numpy as np
+import cv2
+import pandas as pd
+import os
+import time
+import svmutil as SVM
+from sklearn.metrics import f1_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import BaggingClassifier, RandomForestClassifier
+from sklearn.svm import SVC
+SVM.svm_model.predict = lambda self, x: SVM.svm_predict([0], [x], self, "-q")[0][0]
+infile = open('train_XY_test.pkl','rb')
+(X,Y) = pickle.load(infile)
+infile.close()
+#scaler = StandardScaler()
+#scaler.fit(X)
+#X_n = scaler.transform(X)
+start = time.time()
+model = SVM.svm_train( Y, X, "-s 0 -c "+str(C)+" -t 2 -g "+str(gamma))
+print("time=",time.time()-start)
+print("")
+clf = SVC(kernel='rbf',C=0.2, gamma =0.001, tol=0.001)
+#n_estimators = 1
+#clf = BaggingClassifier(SVC(kernel='rbf', gamma =0.05, tol=0.01, class_weight=None), max_samples=1.0/n_estimators, n_estimators=n_estimadtors, n_jobs=-1)
+clf.fit(X,Y)
+y_true = Y
+y_pred = clf.predict(X)
+yy_true = np.array(y_true)
+yy_pred = np.array(y_pred)
+print("test accuracy = %f percent" % ((sum(yy_true==yy_pred)*100.0)/len(yy_true)) )
+print(f1_score(yy_true, yy_pred, average=None))
+
+model = SVM.svm_train( Y, X, "-s 0 -c 1 -t 2 -e .1 -h 0 -g "+str(gamma))
+model = SVM.svm_train( Y, X, "-s 0 -c 0.2 -t 2 -e .1 -h 0 -g 0.001")
+
+
+infile = open('pca_model_grayscale.pkl','rb')
+pca = pickle.load(infile)
+infile.close()
+y_pred = []
+x_test = np.zeros((5000,250))
+counter = 0
+for folder in os.listdir('../data/validation')[:-1]:
+	 if counter==5000:
+             break
+	 image_names = sorted(os.listdir('../data/validation/'+folder))
+	 flat_img_arr = np.array([cv2.imread('../data/validation/'+folder+ '/' + img_name, 0)[17:].flatten()/255. for img_name in image_names])
+	 x_pca=pca.transform(flat_img_arr)
+	 #pred = model.predict(scaler.transform([x_pca.flatten()])[0])
+	 #pred = model.predict(x_pca.flatten())
+	 x_test[counter] = x_pca.flatten()
+	 pred = tree.predict([x_pca.flatten()])[0]
+	 y_pred.append(pred)
+	 counter+=1
+	 print(counter)
+yy_true = np.array(y_true)
+yy_true[yy_true==0.0] = -1.0
+yy_pred = np.array(y_pred)
+print((sum(yy_true==yy_pred)*100.0)/len(yy_true), f1_score(yy_true, yy_pred, average=None))
