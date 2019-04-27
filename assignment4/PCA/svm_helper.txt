@@ -4,28 +4,32 @@ import cv2
 import pandas as pd
 import os
 import time
-import svmutil as SVM
+#import svmutil as SVM
 from sklearn.metrics import f1_score
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import BaggingClassifier, RandomForestClassifier
 from sklearn.svm import SVC
 SVM.svm_model.predict = lambda self, x: SVM.svm_predict([0], [x], self, "-q")[0][0]
-infile = open('train_XY_test.pkl','rb')
+infile = open('train_XY.pkl','rb')
 (X,Y) = pickle.load(infile)
 infile.close()
-#scaler = StandardScaler()
-#scaler.fit(X)
-#X_n = scaler.transform(X)
+SS = StandardScaler()
+SS.fit(X)
+X = SS.transform(X)
+MMS = MinMaxScaler(copy=True, feature_range=(-1, 1))
+MMS.fit(X)
+X = MMS.transform(X)
+#X_n = SS.transform(X)
 start = time.time()
 model = SVM.svm_train( Y, X, "-s 0 -c "+str(C)+" -t 2 -g "+str(gamma))
 print("time=",time.time()-start)
 print("")
-clf = SVC(kernel='rbf',C=0.2, gamma =0.001, tol=0.001)
+clf = SVC(kernel='rbf',C=0.2, gamma =0.05, tol=0.001)
 #n_estimators = 1
 #clf = BaggingClassifier(SVC(kernel='rbf', gamma =0.05, tol=0.01, class_weight=None), max_samples=1.0/n_estimators, n_estimators=n_estimadtors, n_jobs=-1)
 clf.fit(X,Y)
 y_true = Y
-y_pred = clf.predict(X)
+y_pred = clf.predict(X_test)
 yy_true = np.array(y_true)
 yy_pred = np.array(y_pred)
 print("test accuracy = %f percent" % ((sum(yy_true==yy_pred)*100.0)/len(yy_true)) )
@@ -58,3 +62,21 @@ yy_true = np.array(y_true)
 yy_true[yy_true==0.0] = -1.0
 yy_pred = np.array(y_pred)
 print((sum(yy_true==yy_pred)*100.0)/len(yy_true), f1_score(yy_true, yy_pred, average=None))
+
+
+
+standardscaler transform
+minmaxscaler transform
+
+clf1 = SVC(kernel='linear',C=1, tol=0.001,class_weight={-1:1,1:2.5})
+clf2 = SVC(kernel='rbf',C=0.2, gamma =0.02, tol=0.001, class_weight={-1:1,1:3})
+
+clf1.fit(X[:20000],Y[:20000])
+clf2.fit(X[:20000],Y[:20000])
+pred1 = clf1.predict(X[:20000])
+pred2 = clf2.predict(X[:20000])
+y_true = Y[20000:]
+
+print("train accuracy and f score clf1: ",sum(pred1==y_true)/(1.0*len(pred1)), f1_score(y_true, pred1, average=None) )
+print("train accuracy and f score clf2: ",sum(pred2==y_true)/(1.0*len(pred1)), f1_score(y_true, pred2, average=None) )
+print("")

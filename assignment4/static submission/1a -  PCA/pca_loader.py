@@ -8,9 +8,9 @@ from sklearn.metrics import f1_score
 import os
 gamma = 0.05
 C = 0.2
-total_X_size = 30000
+total_X_size = 20000
 
-infile = open('server_pca.pkl','rb')
+infile = open('pca_model.pkl','rb')
 pca = pickle.load(infile)
 infile.close()
 
@@ -33,7 +33,7 @@ for folder in all_folders:
 
 	# appending frames before 1.0 reward
 	for index in ones_location:
-		flat_img_arr = np.array([cv2.imread(inner_path + '/' + image_names[j], 0)[31:].flatten()/255. for j in range(index-7,index,1)])
+		flat_img_arr = np.array([cv2.imread(inner_path + '/' + image_names[j], 0)[17:].flatten()/255. for j in range(index-7,index,1)])
 		l = range(0,6,1)
 		# for comb in itertools.combinations(l,4):
 		for comb in random.sample(list(itertools.combinations(l,4)),2): #pick randomly 3 images
@@ -57,7 +57,7 @@ for folder in all_folders:
 		if index not in ones_location:
 			if count_zeros>= 3*len(ones_location): # means negative frames are twice the positive frames for an episode
 				break
-			flat_img_arr = np.array([cv2.imread(inner_path + '/' + image_names[j], 0)[31:].flatten()/255. for j in range(index-7,index,1)])
+			flat_img_arr = np.array([cv2.imread(inner_path + '/' + image_names[j], 0)[17:].flatten()/255. for j in range(index-7,index,1)])
 			l = range(0,6,1)
 			# for comb in itertools.combinations(l,4):
 			for comb in random.sample(list(itertools.combinations(l,4)),2):

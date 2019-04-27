@@ -1,0 +1,18 @@
+Best model:
+
+training_size = 60000
+epoch = 4 , optimizer adam
+f score = [0.9253525  0.80477223]
+layers:
+64, 6x6, stride=2
+maxpool 2x2, stride 2
+64, 6x6, stride=2
+maxpool 2x2, stride 2
+64, 6x6, stride=2
+maxpool 2x2, stride 2
+FC 1024
+FC 2048
+
+
+train accuracy: 0.9854
+test accuracy: 0.9706

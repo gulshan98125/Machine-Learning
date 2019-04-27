@@ -1,82 +1,34 @@
-import cPickle as pickle
+import _pickle as pickle
 import cv2
+import os
 import numpy as np
 import pandas as pd
 import random
 import itertools
 from sklearn.metrics import f1_score
-import os
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 gamma = 0.05
 C = 0.2
-total_X_size = 30000
 
-infile = open('server_pca.pkl','rb')
-pca = pickle.load(infile)
+infile = open('scaler_and_pca_model.pkl','rb')
+scaler,pca = pickle.load(infile)
 infile.close()
 
+infile = open('train_XY.pkl','rb')
+(X,Y) = pickle.load(infile)
+infile.close()
 
-X = np.zeros((total_X_size,250))
-Y = np.zeros(total_X_size)
-counter = 0
-train_data_path = '../data/train'
-all_folders = os.listdir(train_data_path)
-random.shuffle(all_folders)
-for folder in all_folders:
-	if counter>=total_X_size:
-		break
-	inner_path = train_data_path+'/'+folder
-	print(inner_path, 'data_size='+str(counter))
-	image_names = sorted(os.listdir(inner_path))[:-1]
-	reward_arr = np.concatenate( (np.array(pd.read_csv(inner_path+'/rew.csv',header=None)),[[0]]) , axis=0)
-	ones_location = np.where(reward_arr.flatten()==1.0)[0]
-	# print(ones_location)
+scaler2 = StandardScaler()
+scaler2.fit(X)
+X_n = scaler2.transform(X)
 
-	# appending frames before 1.0 reward
-	for index in ones_location:
-		flat_img_arr = np.array([cv2.imread(inner_path + '/' + image_names[j], 0)[31:].flatten()/255. for j in range(index-7,index,1)])
-		l = range(0,6,1)
-		# for comb in itertools.combinations(l,4):
-		for comb in random.sample(list(itertools.combinations(l,4)),2): #pick randomly 3 images
-			if counter>=total_X_size:
-				break
-			ind = list(comb)
-			ind.append(6)
-			useful_img_arr = flat_img_arr[ind] # last frame is always present
-
-			#useful_img_arr has 5 images
-			x_pca=pca.transform(useful_img_arr)
-			# print(x_pca,x_pca.shape)
-			X[counter] = x_pca.flatten()
-			Y[counter] = 1.0
-			counter+=1
-
-	zeros_location = random.sample(range(len(image_names)),4*len(ones_location))
-	
-	count_zeros = 0
-	for index in zeros_location:
-		if index not in ones_location:
-			if count_zeros>= 3*len(ones_location): # means negative frames are twice the positive frames for an episode
-				break
-			flat_img_arr = np.array([cv2.imread(inner_path + '/' + image_names[j], 0)[31:].flatten()/255. for j in range(index-7,index,1)])
-			l = range(0,6,1)
-			# for comb in itertools.combinations(l,4):
-			for comb in random.sample(list(itertools.combinations(l,4)),2):
-				if counter>=total_X_size:
-					break
-				ind = list(comb)
-				ind.append(6)
-				useful_img_arr = flat_img_arr[ind]
-				x_pca=pca.transform(useful_img_arr)
-				X[counter] = x_pca.flatten()
-				Y[counter] = -1.0
-				counter+=1
-			count_zeros+=1
-# model = SVM.svm_train( Y, X, "-s 0 -c "+str(C)+" -t 2 -e 0.1 -g "+str(gamma)) #first element is fake
-print("here")
-outfile = open('train_XY.pkl','wb')
-pickle.dump((X,Y),outfile,-1)
-outfile.close()
-
+svm = SVC(kernel='rbf',C=C, gamma =gamma)
+svm.fit(X_n[:15000],Y[:15000])
+y_pred = svm.predict(X_n[15000:])
+y_pred2 = svm.predict(X_n[:15000])
+print("f1 score train: ",f1_score(Y[:15000], y_pred2, average=None))
+print("f1 score validation: ",f1_score(Y[15000:], y_pred, average=None))
 # y_true = Y
 # y_pred = []
 # for i in range(len(X)):
